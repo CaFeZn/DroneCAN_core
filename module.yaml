@@ -1,0 +1,16 @@
+﻿name: dronecan_core
+class_name: DroneCANCore
+header: DroneCANCore.hpp
+constructor_args:
+  node_id: 10
+  heartbeat_period_ms: 500
+  node_status_period_ms: 1000
+  can_alias: can0
+  timebase_alias: timebase
+  node_name: org.libxr.dronecan_core
+  esc_count: 4
+  can_poller_alias: can0_poller
+  publish_idle_esc_status: false
+  enable_dynamic_node_id: false
+  preferred_node_id: 0
+
