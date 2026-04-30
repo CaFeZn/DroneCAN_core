@@ -3,7 +3,6 @@
 #include <array>
 #include <cstring>
 
-#include "dronecan_esc_raw_command/EscCodec.hpp"
 #include "dronecan_core/dronecan_frame.hpp"
 #include "libxr_cb.hpp"
 #include "libxr_def.hpp"
@@ -260,8 +259,7 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
     const std::uint16_t data_type_id =
         static_cast<std::uint16_t>((canard_frame.id >> (((canard_frame.id >> 7U) & 0x1U) ? 16U : 8U)) &
                                    (((canard_frame.id >> 7U) & 0x1U) ? 0xFFU : 0xFFFFU));
-    if ((data_type_id == GET_NODE_INFO_DATA_TYPE_ID) ||
-        (data_type_id == DroneCANCoreSupport::EscCodec::kRawCommandDataTypeId))
+    if (data_type_id == GET_NODE_INFO_DATA_TYPE_ID)
     {
       LibXR::STDIO::Printf("[DroneCANNode] rx can_id=0x%08lX dtid=%u ts=%llu\r\n",
                            static_cast<unsigned long>(canard_frame.id),
@@ -522,10 +520,6 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
       if (entry.used && (entry.data_type_id == data_type_id) &&
           (ToCanardTransferType(entry.kind) == transfer_type))
       {
-        if (data_type_id == DroneCANCoreSupport::EscCodec::kRawCommandDataTypeId)
-        {
-          LibXR::STDIO::Printf("[DroneCANNode] accept RawCommand transfer\r\n");
-        }
         *out_data_type_signature = entry.data_type_signature;
         return true;
       }
@@ -554,8 +548,7 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
   void OnTransferReception(CanardRxTransfer* transfer)
   {
     ++rx_transfer_count;
-    if ((transfer->data_type_id == GET_NODE_INFO_DATA_TYPE_ID) ||
-        (transfer->data_type_id == DroneCANCoreSupport::EscCodec::kRawCommandDataTypeId))
+    if (transfer->data_type_id == GET_NODE_INFO_DATA_TYPE_ID)
     {
       LibXR::STDIO::Printf("[DroneCANNode] transfer dtid=%u type=%u src=%u len=%u tid=%u\r\n",
                            static_cast<unsigned>(transfer->data_type_id),
