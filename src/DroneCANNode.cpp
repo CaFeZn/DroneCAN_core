@@ -256,17 +256,6 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
       return;
     }
 
-    const std::uint16_t data_type_id =
-        static_cast<std::uint16_t>((canard_frame.id >> (((canard_frame.id >> 7U) & 0x1U) ? 16U : 8U)) &
-                                   (((canard_frame.id >> 7U) & 0x1U) ? 0xFFU : 0xFFFFU));
-    if (data_type_id == GET_NODE_INFO_DATA_TYPE_ID)
-    {
-      LibXR::STDIO::Printf("[DroneCANNode] rx can_id=0x%08lX dtid=%u ts=%llu\r\n",
-                           static_cast<unsigned long>(canard_frame.id),
-                           static_cast<unsigned>(data_type_id),
-                           static_cast<unsigned long long>(timestamp_us));
-    }
-
     (void)canardHandleRxFrame(&instance, &canard_frame, timestamp_us);
   }
 
@@ -510,7 +499,6 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
         (transfer_type == CanardTransferTypeRequest) &&
         (data_type_id == GET_NODE_INFO_DATA_TYPE_ID))
     {
-      LibXR::STDIO::Printf("[DroneCANNode] accept GetNodeInfo request\r\n");
       *out_data_type_signature = GET_NODE_INFO_DATA_TYPE_SIGNATURE;
       return true;
     }
@@ -548,23 +536,11 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
   void OnTransferReception(CanardRxTransfer* transfer)
   {
     ++rx_transfer_count;
-    if (transfer->data_type_id == GET_NODE_INFO_DATA_TYPE_ID)
-    {
-      LibXR::STDIO::Printf("[DroneCANNode] transfer dtid=%u type=%u src=%u len=%u tid=%u\r\n",
-                           static_cast<unsigned>(transfer->data_type_id),
-                           static_cast<unsigned>(transfer->transfer_type),
-                           static_cast<unsigned>(transfer->source_node_id),
-                           static_cast<unsigned>(transfer->payload_len),
-                           static_cast<unsigned>(transfer->transfer_id));
-    }
 
     if ((transfer->transfer_type == CanardTransferTypeRequest) &&
         (transfer->data_type_id == GET_NODE_INFO_DATA_TYPE_ID))
     {
-      if (transfer->payload_len == 0U)
-      {
-        HandleGetNodeInfoRequest(*transfer);
-      }
+      HandleGetNodeInfoRequest(*transfer);
       canardReleaseRxTransferPayload(&instance, transfer);
       return;
     }
