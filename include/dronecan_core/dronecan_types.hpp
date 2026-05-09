@@ -99,6 +99,20 @@ struct TransferMetadata
 using TransferHandler = Callback<const TransferMetadata&, ConstRawData>;
 
 /**
+ * @brief 发布到 LibXR Topic 的已解码 DroneCAN 消息。
+ *
+ * @tparam Message 已生成的 DSDL 消息类型。
+ */
+template <typename Message>
+struct TopicMessage
+{
+  /** @brief 该消息对应的 DroneCAN 传输元数据。 */
+  TransferMetadata metadata{};
+  /** @brief 已解码的 DSDL 消息对象。 */
+  Message message{};
+};
+
+/**
  * @brief libcanard 内存池使用统计。
  */
 struct PoolStatistics

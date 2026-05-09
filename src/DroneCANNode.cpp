@@ -151,12 +151,12 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
    */
   Impl(LibXR::CAN& can, LibXR::Timebase& timebase, void* arena_ptr, std::size_t arena_len,
        const Config& cfg)
-      : can(can),
+      : rx_queue(cfg.rx_queue_size),
+        config(cfg),
+        can(can),
         timebase(timebase),
         arena(arena_ptr),
-        arena_size(arena_len),
-        config(cfg),
-        rx_queue(cfg.rx_queue_size)
+        arena_size(arena_len)
   {
     ASSERT(arena != nullptr);
     ASSERT(arena_size >= CANARD_MEM_BLOCK_SIZE);
@@ -695,6 +695,20 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
     return nullptr;
   }
 
+  /** @brief 中断/回调到主循环之间的接收缓冲队列。 */
+  LibXR::LockFreeQueue<StampedFrame> rx_queue;
+  /** @brief 节点启动时间戳，单位微秒。 */
+  std::uint64_t started_at_us = 0U;
+  /** @brief 下一次 `NodeStatus` 发布时间戳，单位微秒。 */
+  std::uint64_t next_node_status_us = 0U;
+  /** @brief 下一次 stale transfer 清理时间戳，单位微秒。 */
+  std::uint64_t next_cleanup_us = 0U;
+  /** @brief 节点运行配置快照。 */
+  Config config{};
+  /** @brief 当前节点信息。 */
+  NodeInfo node_info{};
+  /** @brief 应用层注册的传输处理器表。 */
+  std::array<HandlerEntry, MAX_TRANSFER_HANDLERS> handlers{};
   /** @brief 节点所依附的底层 CAN 驱动。 */
   LibXR::CAN& can;
   /** @brief 节点共用的系统时基对象。 */
@@ -703,42 +717,28 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
   void* arena = nullptr;
   /** @brief libcanard 静态内存池大小，单位字节。 */
   std::size_t arena_size = 0U;
-  /** @brief 节点运行配置快照。 */
-  Config config{};
-  /** @brief libcanard 协议实例。 */
-  CanardInstance instance{};
-  /** @brief 挂到 CAN 扩展帧订阅上的回调对象。 */
+  /** @brief 挂到 CAN 扩展帧永久注册上的回调对象。 */
   LibXR::CAN::Callback rx_callback;
-  /** @brief 中断/回调到主循环之间的接收缓冲队列。 */
-  LibXR::LockFreeQueue<StampedFrame> rx_queue;
-  /** @brief 不同传输键值的传输 ID 分配表。 */
-  std::array<TransferIdSlot, MAX_TRANSFER_ID_SLOTS> transfer_ids{};
-  /** @brief 应用层注册的传输处理器表。 */
-  std::array<HandlerEntry, MAX_TRANSFER_HANDLERS> handlers{};
-  /** @brief 线性化接收负载时复用的临时缓冲。 */
-  std::array<std::uint8_t, CANARD_MAX_TRANSFER_PAYLOAD_LEN> rx_linearized_payload{};
-  /** @brief 当前节点信息。 */
-  NodeInfo node_info{};
-  /** @brief 当前节点运行模式。 */
-  NodeMode node_status_mode = NodeMode::INITIALIZATION;
-  /** @brief 当前节点健康状态。 */
-  NodeHealth node_status_health = NodeHealth::OK;
-  /** @brief 当前节点 3-bit 子模式。 */
-  std::uint8_t node_sub_mode = 0U;
-  /** @brief 厂商自定义状态码。 */
-  std::uint16_t vendor_specific_status_code = 0U;
-  /** @brief 节点启动时间戳，单位微秒。 */
-  std::uint64_t started_at_us = 0U;
-  /** @brief 下一次 `NodeStatus` 发布时间戳，单位微秒。 */
-  std::uint64_t next_node_status_us = 0U;
-  /** @brief 下一次 stale transfer 清理时间戳，单位微秒。 */
-  std::uint64_t next_cleanup_us = 0U;
   /** @brief 因接收队列满而被丢弃的 CAN 帧计数。 */
   std::uint32_t rx_drop_count = 0U;
   /** @brief 已送入 libcanard 的 CAN 帧计数。 */
   std::uint32_t rx_frame_count = 0U;
   /** @brief 已完成重组的 DroneCAN 传输计数。 */
   std::uint32_t rx_transfer_count = 0U;
+  /** @brief libcanard 协议实例。 */
+  CanardInstance instance{};
+  /** @brief 厂商自定义状态码。 */
+  std::uint16_t vendor_specific_status_code = 0U;
+  /** @brief 不同传输键值的传输 ID 分配表。 */
+  std::array<TransferIdSlot, MAX_TRANSFER_ID_SLOTS> transfer_ids{};
+  /** @brief 当前节点运行模式。 */
+  NodeMode node_status_mode = NodeMode::INITIALIZATION;
+  /** @brief 当前节点健康状态。 */
+  NodeHealth node_status_health = NodeHealth::OK;
+  /** @brief 当前节点 3-bit 子模式。 */
+  std::uint8_t node_sub_mode = 0U;
+  /** @brief 线性化接收负载时复用的临时缓冲。 */
+  std::array<std::uint8_t, CANARD_MAX_TRANSFER_PAYLOAD_LEN> rx_linearized_payload{};
 };
 
 namespace DroneCANCoreSupport
