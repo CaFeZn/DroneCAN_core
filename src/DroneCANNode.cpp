@@ -185,6 +185,21 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
   }
 
   /**
+   * @brief 将底层 CAN 帧转换并喂给 libcanard。
+   */
+  void ProcessFrame(const LibXR::CAN::ClassicPack& frame, std::uint64_t timestamp_us)
+  {
+    ++rx_frame_count;
+    CanardCANFrame canard_frame{};
+    if (LibXR::DroneCANDetail::ToCanardFrame(frame, canard_frame) != ErrorCode::OK)
+    {
+      return;
+    }
+
+    (void)canardHandleRxFrame(&instance, &canard_frame, timestamp_us);
+  }
+
+  /**
    * @brief 推进一次协议栈接收、定时任务与发送冲刷。
    */
   void Poll()
@@ -242,21 +257,6 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
     }
 
     ProcessFrame(frame, timestamp_us);
-  }
-
-  /**
-   * @brief 将底层 CAN 帧转换并喂给 libcanard。
-   */
-  void ProcessFrame(const LibXR::CAN::ClassicPack& frame, std::uint64_t timestamp_us)
-  {
-    ++rx_frame_count;
-    CanardCANFrame canard_frame{};
-    if (LibXR::DroneCANDetail::ToCanardFrame(frame, canard_frame) != ErrorCode::OK)
-    {
-      return;
-    }
-
-    (void)canardHandleRxFrame(&instance, &canard_frame, timestamp_us);
   }
 
   /**
