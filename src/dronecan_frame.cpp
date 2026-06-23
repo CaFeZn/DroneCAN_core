@@ -19,6 +19,11 @@ LibXR::ErrorCode ToCanardFrame(const LibXR::CAN::ClassicPack& source, CanardCANF
     return ErrorCode::ARG_ERR;
   }
 
+  if (source.id > CANARD_CAN_EXT_ID_MASK)
+  {
+    return ErrorCode::ARG_ERR;
+  }
+
   destination.id = (source.id & CANARD_CAN_EXT_ID_MASK) | CANARD_CAN_FRAME_EFF;
   if (source.dlc > CANARD_CAN_FRAME_MAX_DATA_LEN)
   {

@@ -6,7 +6,7 @@
 #include "dronecan_core/dronecan_frame.hpp"
 #include "libxr_cb.hpp"
 #include "libxr_def.hpp"
-#include "lockfree_queue.hpp"
+#include "spsc_queue.hpp"
 
 extern "C"
 {
@@ -295,6 +295,11 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
   LibXR::ErrorCode Broadcast(std::uint16_t data_type_id, std::uint64_t signature,
                              std::uint8_t priority, LibXR::ConstRawData payload)
   {
+    if ((payload.addr_ == nullptr) && (payload.size_ != 0U))
+    {
+      return ErrorCode::PTR_NULL;
+    }
+
     if (payload.size_ > CANARD_MAX_TRANSFER_PAYLOAD_LEN)
     {
       return ErrorCode::SIZE_ERR;
@@ -318,6 +323,11 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
                            std::uint64_t signature, std::uint8_t priority,
                            LibXR::ConstRawData payload)
   {
+    if ((payload.addr_ == nullptr) && (payload.size_ != 0U))
+    {
+      return ErrorCode::PTR_NULL;
+    }
+
     if (payload.size_ > CANARD_MAX_TRANSFER_PAYLOAD_LEN)
     {
       return ErrorCode::SIZE_ERR;
@@ -343,6 +353,11 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
                            std::uint64_t signature, std::uint8_t transfer_id,
                            std::uint8_t priority, LibXR::ConstRawData payload)
   {
+    if ((payload.addr_ == nullptr) && (payload.size_ != 0U))
+    {
+      return ErrorCode::PTR_NULL;
+    }
+
     if (payload.size_ > CANARD_MAX_TRANSFER_PAYLOAD_LEN)
     {
       return ErrorCode::SIZE_ERR;
@@ -696,7 +711,7 @@ struct DroneCANCoreSupport::DroneCANNode::Impl
   }
 
   /** @brief 中断/回调到主循环之间的接收缓冲队列。 */
-  LibXR::LockFreeQueue<StampedFrame> rx_queue;
+  LibXR::SPSCQueue<StampedFrame> rx_queue;
   /** @brief 节点启动时间戳，单位微秒。 */
   std::uint64_t started_at_us = 0U;
   /** @brief 下一次 `NodeStatus` 发布时间戳，单位微秒。 */
